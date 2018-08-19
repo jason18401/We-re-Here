@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "24706203713",
+    "firebase_url": "https://we-re-here1.firebaseio.com",
+    "project_id": "we-re-here1",
+    "storage_bucket": "we-re-here1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:24706203713:android:d5faab98e314aa6e",
+        "android_client_info": {
+          "package_name": "com.example.hyu13.werehere"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "24706203713-fup66h9m616g8t0dvgg787gelfjfue51.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hyu13.werehere",
+            "certificate_hash": "85d09fbe4a3784960052cc16a5147aae117fd729"
+          }
+        },
+        {
+          "client_id": "24706203713-urshs6jc8dq9lalacr76v5gqjn4moel2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB36VIGML_hEZWHyyqFTpEVibPCyCIG99U"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "24706203713-urshs6jc8dq9lalacr76v5gqjn4moel2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
