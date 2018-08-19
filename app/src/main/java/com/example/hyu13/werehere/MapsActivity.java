@@ -96,7 +96,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View view) {
 
-                if(requestBol){ //to cancel request
+                if(requestBol){ //to cancel request after tapping again
                     requestBol = false;
                     geoQuery.removeAllListeners();
                     assignedLoomerLocation.removeEventListener(assignedLoomerLocationListener);
