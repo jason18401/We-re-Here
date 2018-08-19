@@ -57,6 +57,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private String loomerId = "";
     private boolean requestBol = false;
 
+    private Marker loomerMarker;
+
     private FusedLocationProviderClient mFusedLocationProviderClient;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,10 +96,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onClick(View view) {
 
-                if(requestBol){
+                if(requestBol){ //to cancel request
                     requestBol = false;
                     geoQuery.removeAllListeners();
                     assignedLoomerLocation.removeEventListener(assignedLoomerLocationListener);
+
+                    if(loomerFoundID != null){
+                        DatabaseReference loomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child(loomerFoundID);
+                        loomerRef.setValue(true);
+                        loomerFoundID = null;
+                    }
+                    loomerFound = false;
+                    radius = 20;
+                    String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference("LoomerRequest");
+
+                    GeoFire geoFire = new GeoFire(ref);
+                    geoFire.removeLocation(userId);
+
+                    //remove marker on cancel request
+                    if(loomerMarker != null){
+                        loomerMarker.remove();
+                    }
+                    mRequest.setText("Loom");
+
                 }else{
                     requestBol = true;
 
@@ -113,7 +135,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
 
                     meetLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-                    mMap.addMarker(new MarkerOptions().position(meetLocation).title("Let's Meet Here!"));
+                    loomerMarker = mMap.addMarker(new MarkerOptions().position(meetLocation).title("Let's Meet Here!"));
 
                     mRequest.setText("Locating fellow Loomer....");
 
@@ -135,6 +157,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if(dataSnapshot.exists()){
                     loomerId = dataSnapshot.getValue().toString();
                     getAssignedLocation();
+                }else{
+                    loomerId = "";
+                    if(loomerMarker != null){
+                        meetMarker.remove();
+                    }
+                    if(assignedLoomerLocationListener != null) {
+                        assignedLoomerLocation.removeEventListener(assignedLoomerLocationListener);
+                    }
                 }
             }
 
@@ -144,6 +174,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    Marker meetMarker;
     private DatabaseReference assignedLoomerLocation;
     private ValueEventListener assignedLoomerLocationListener;
 
@@ -152,7 +183,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         assignedLoomerLocationListener = assignedLoomerLocation.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists()){
+                if(dataSnapshot.exists() && !loomerId.equals("")){
                     List<Object> map = (List<Object>)dataSnapshot.getValue();
                     double locationLat = 0;
                     double locationLng = 0;
@@ -165,7 +196,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                     LatLng loomerLatLng = new LatLng(locationLat, locationLng);
-                    //mMap.addMarker(new MarkerOptions().position(loomerLatLng).title("Meet Location"));
+                    meetMarker = mMap.addMarker(new MarkerOptions().position(loomerLatLng).title("Meet Location")); //DEBUG erased before and removed marker
                 }
             }
 
@@ -190,7 +221,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {    //key = ID of driver
-                if(!loomerFound) {
+                if(!loomerFound && requestBol) {
                     loomerFound = true;
                     loomerFoundID = key;
 
@@ -264,7 +295,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         loomerLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists()){
+                if(dataSnapshot.exists() && requestBol){
                     List<Object> map = (List<Object>) dataSnapshot.getValue();
                     double locationLat = 0;
                     double locationLng = 0;
