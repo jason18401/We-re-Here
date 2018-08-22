@@ -28,6 +28,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -47,6 +48,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     LocationRequest mLocationRequest;
+    GeoQuery geoQuery;
+    Marker meetMarker;
 
     private Button mLogout, mRequest;
     private Boolean isLoggingOut = false;
@@ -57,9 +60,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private String loomerId = "";
     private boolean requestBol = false;
 
-    private Marker loomerMarker;
+    private int radius = 20;    //locating loomers within 20 miles
+    private Boolean loomerFound = false;
+    private String loomerFoundID;
 
-    private FusedLocationProviderClient mFusedLocationProviderClient;
+    private Marker loomerMarker;
+    private Marker mLoomerMarker;
+
+    private DatabaseReference assignedLoomerLocation;
+    private ValueEventListener assignedLoomerLocationListener;
+
+    final int LOCATION_REQUEST_CODE = 1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,7 +79,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
@@ -79,7 +90,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mLogout = (Button) findViewById(R.id.logout);
         mLogout.setOnClickListener(new View.OnClickListener(){
             @Override
-            public void onClick(View view){
+            public void onClick(View view) {
                 isLoggingOut = true;
 
                 disconnectDriver();
@@ -109,7 +120,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     loomerFound = false;
                     radius = 20;
                     String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference("LoomerRequest");
+                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference("MetRequest");
 
                     GeoFire geoFire = new GeoFire(ref);
                     geoFire.removeLocation(userId);
@@ -125,7 +136,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference("LoomerRequest");
+                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference("MetRequest");
                     GeoFire geoFire = new GeoFire(ref);
                     geoFire.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
 
@@ -141,16 +152,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     getLoomer();
                 }
-
             }
         });
-
-        getAssignedLoomer();
+       getAssignedLoomer();
     }
 
     private void getAssignedLoomer(){
         String meeterId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child(meeterId); //.child("loomerRideId");
+        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child(meeterId).child("loomerRideId");
         assignedCustomerRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -174,43 +183,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    Marker meetMarker;
-    private DatabaseReference assignedLoomerLocation;
-    private ValueEventListener assignedLoomerLocationListener;
-
-    private void getAssignedLocation(){
-        assignedLoomerLocation = FirebaseDatabase.getInstance().getReference().child("LoomerRequest").child(loomerId).child("l");
-        assignedLoomerLocationListener = assignedLoomerLocation.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists() && !loomerId.equals("")){
-                    List<Object> map = (List<Object>)dataSnapshot.getValue();
-                    double locationLat = 0;
-                    double locationLng = 0;
-                    if(map.get(0) != null) {    //in firebase the lat is 0
-                        locationLat = Double.parseDouble(map.get(0).toString());
-                    }
-                    if(map.get(1) != null) {    //in firebase the lng is 1
-                        locationLng = Double.parseDouble(map.get(1).toString());
-                    }
-
-
-                    LatLng loomerLatLng = new LatLng(locationLat, locationLng);
-                    meetMarker = mMap.addMarker(new MarkerOptions().position(loomerLatLng).title("Meet Location")); //DEBUG erased before and removed marker
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-            }
-        });
-    }
-
-    private int radius = 20;    //locating loomers within 20 miles
-    private Boolean loomerFound = false;
-    private String loomerFoundID;
-
-    GeoQuery geoQuery;
     private void getLoomer(){
         DatabaseReference loomerLocation = FirebaseDatabase.getInstance().getReference().child("UsersAvailable");
 
@@ -288,10 +260,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    private Marker mLoomerMarker;
-    private void getLoomerLocation(){
+    private void getAssignedLocation(){
+        assignedLoomerLocation = FirebaseDatabase.getInstance().getReference().child("MEtRequest").child(loomerId).child("l");
+        assignedLoomerLocationListener = assignedLoomerLocation.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists() && !loomerId.equals("")){
+                    List<Object> map = (List<Object>)dataSnapshot.getValue();
+                    double locationLat = 0;
+                    double locationLng = 0;
+                    if(map.get(0) != null) {    //in firebase the lat is 0
+                        locationLat = Double.parseDouble(map.get(0).toString());
+                    }
+                    if(map.get(1) != null) {    //in firebase the lng is 1
+                        locationLng = Double.parseDouble(map.get(1).toString());
+                    }
 
-        DatabaseReference loomerLocationRef = FirebaseDatabase.getInstance().getReference().child("LoomersLooming").child(loomerFoundID).child("l");
+
+                    LatLng loomerLatLng = new LatLng(locationLat, locationLng);
+                    meetMarker = mMap.addMarker(new MarkerOptions().position(loomerLatLng).title("Meet Location").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_loomer))); //DEBUG erased before and removed marker
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+    private void getLoomerLocation(){
+        DatabaseReference loomerLocationRef = FirebaseDatabase.getInstance().getReference().child("MetUp").child(loomerFoundID).child("l");
         loomerLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -335,6 +333,74 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    @Override
+    public void onLocationChanged(Location location) {
+        if(getApplicationContext()!= null) {
+
+            mLastLocation = location;
+            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+
+            //to move camera with the user
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+
+            String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();    //get userID that is currently logged in
+            DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("UsersAvailable");  //for currently available users
+            DatabaseReference refNotAvailable = FirebaseDatabase.getInstance().getReference("MetUp");  //for currently NOT available users
+
+            GeoFire geoFireAvailable = new GeoFire(refAvailable); //where we want the geofire to store our data
+            GeoFire geoFireNotAvailable = new GeoFire(refNotAvailable); //where we want the geofire to store our data
+
+            //turns non available to available
+            switch(loomerId){
+                case  "":
+                    geoFireNotAvailable.removeLocation(userID);
+                    geoFireAvailable.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude())); //pass long and lat to the child userID
+                    break;
+
+                default:
+                    geoFireAvailable.removeLocation(userID);
+                    geoFireNotAvailable.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude())); //pass long and lat to the child userID
+                    break;
+            }
+
+        }
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
+        }
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+    }
+
+    private void disconnectDriver(){
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();    //get userID that is currently logged in
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("UsersAvailable");  //for currently available users
+        DatabaseReference ref1 = FirebaseDatabase.getInstance().getReference("MetUp");  //for currently available users
+        DatabaseReference ref2 = FirebaseDatabase.getInstance().getReference("MetRequest");
+
+        //fix this
+        //DatabaseReference user = FirebaseDatabase.getInstance().getReference("Users").child(userID); //.child("loomerRideId");
+        DatabaseReference user = FirebaseDatabase.getInstance().getReference("Users").child(userID).child("loomerRideId"); //OG
+
+        GeoFire geoFire = new GeoFire(ref);
+        GeoFire geoFire1 = new GeoFire(ref1);
+        GeoFire geoFire2 = new GeoFire(ref2);
+        GeoFire geoFireUser = new GeoFire(user);
+        geoFire.removeLocation(userID);
+        geoFire1.removeLocation(userID);
+        geoFire2.removeLocation(userID);
+        geoFireUser.removeLocation(userID);
+    }
+
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -361,65 +427,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mGoogleApiClient.connect();
     }
 
-    @Override
-    public void onLocationChanged(Location location) {
-        if(getApplicationContext()!= null) {
-
-            mLastLocation = location;
-            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-
-            //to move camera with the user
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-            mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
-
-            String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();    //get userID that is currently logged in
-            DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("UsersAvailable");  //for currently available users
-            DatabaseReference refNotAvailable = FirebaseDatabase.getInstance().getReference("LoomersLooming");  //for currently NOT available users
-
-            GeoFire geoFireAvailable = new GeoFire(refAvailable); //where we want the geofire to store our data
-            GeoFire geoFireNotAvailable = new GeoFire(refNotAvailable); //where we want the geofire to store our data
-
-            //turns non available to available
-            switch(loomerId){
-                case  "":
-                    geoFireNotAvailable.removeLocation(userID);
-                    geoFireAvailable.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude())); //pass long and lat to the child userID
-                    break;
-
-                default:
-                    geoFireAvailable.removeLocation(userID);
-                    geoFireNotAvailable.setLocation(userID, new GeoLocation(location.getLatitude(), location.getLongitude())); //pass long and lat to the child userID
-                    break;
-            }
-
-        }
-    }
-
-    final int LOCATION_REQUEST_CODE = 1;
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(1000);
-        mLocationRequest.setFastestInterval(1000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
-        }
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
-    }
-
     //For Map to Work with Location Services
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -436,31 +443,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void disconnectDriver(){
-        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();    //get userID that is currently logged in
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("UsersAvailable");  //for currently available users
-        DatabaseReference ref1 = FirebaseDatabase.getInstance().getReference("LoomersLooming");  //for currently available users
-        DatabaseReference ref2 = FirebaseDatabase.getInstance().getReference("LoomerRequest");
-
-        //fix this
-        DatabaseReference user = FirebaseDatabase.getInstance().getReference("Users").child(userID); //.child("loomerRideId");
-        //DatabaseReference user = FirebaseDatabase.getInstance().getReference("Users").child(userID).child("loomerRideId"); //OG
-
-        GeoFire geoFire = new GeoFire(ref);
-        GeoFire geoFire1 = new GeoFire(ref1);
-        GeoFire geoFire2 = new GeoFire(ref2);
-        GeoFire geoFireUser = new GeoFire(user);
-        geoFire.removeLocation(userID);
-        geoFire1.removeLocation(userID);
-        geoFire2.removeLocation(userID);
-        geoFireUser.removeLocation(userID);
-    }
     @Override
     protected void onStop() {
         super.onStop();
         if(!isLoggingOut) {
             disconnectDriver();
         }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
 }
