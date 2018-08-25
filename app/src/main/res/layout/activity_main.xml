@@ -42,7 +42,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="115dp"
         android:background="@drawable/rounded_button"
-        android:text="Login"
+        android:text="@string/LoginButton"
         android:textSize="15dp"
         android:textColor="#fff"/>
 
@@ -54,7 +54,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="61dp"
         android:background="@drawable/rounded_button"
-        android:text="Register"
+        android:text="@string/RegisterButton"
         android:textSize="15dp"
         android:textColor="#fff"/>
 

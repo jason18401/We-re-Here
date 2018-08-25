@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">LOOM</string>
+    <string name="LoginButton">Login</string>
+    <string name="RegisterButton">Register</string>
     <string name="title_activity_maps">Map</string>
+    <string name="ProfileButton">Profile</string>
+    <string name="LogoutButton">Logout</string>
+    <string name="LOOMButton">LOOM</string>
+    <string name="ConfirmButton">Confirm</string>
+    <string name="BackButton">Back</string>
 </resources>

@@ -4,8 +4,6 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
-import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -21,7 +19,6 @@ import com.firebase.geofire.GeoQuery;
 import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -51,7 +48,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     GeoQuery geoQuery;
     Marker meetMarker;
 
-    private Button mLogout, mRequest;
+    private Button mLogout, mRequest, mProfile;
     private Boolean isLoggingOut = false;
 
     private SupportMapFragment mapFragment;
@@ -98,6 +95,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Intent intent = new Intent(MapsActivity.this, MainActivity.class);
                 startActivity(intent);
                 finish();
+                return;
+            }
+        });
+
+        mProfile = (Button) findViewById(R.id.Profile);
+        mProfile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MapsActivity.this, InfoActivity.class);
+                startActivity(intent);
                 return;
             }
         });
