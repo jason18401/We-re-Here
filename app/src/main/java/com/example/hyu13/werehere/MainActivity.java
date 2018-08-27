@@ -40,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
         mEmail = (EditText) findViewById(R.id.email);
         mPassword = (EditText) findViewById(R.id.password);
 
+        startService(new Intent(MainActivity.this, AppKilled.class));
+
         mLogIn = (Button) findViewById(R.id.login);
         fireBaseAuthListener = new FirebaseAuth.AuthStateListener(){
             @Override
